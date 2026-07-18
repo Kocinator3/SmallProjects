@@ -5,43 +5,55 @@ import threading
 HOST = "0.0.0.0"
 PORT = 5555
 clients = []
+names = {"[SERVER]":[0,0]}
+adresses = {}
 
 def client_service(client, adress):
+    global names, clients
     print("New connection:" + str(adress))
     while True:
         try:
             # waiting for a message
             message = client.recv(1024)
             if not message:
-                break # Pokud přijde prázdná zpráva, klient se odpojil
-            
-            # Musíme byty dekódovat na text, abychom mohli kontrolovat formát
+                break            
             text = message.decode("utf-8")
             words = text.split(" ")
-            
-            # checking whisper
-            if "|" in words[0]:
-                whispering_to = words[0].split("|")[1]
-                # Tady pak dopíšeš logiku šeptání...
-                
-            else: 
+            name = words[0][:-1]
+            if "|" in name:
+                whispering_to = name.split("|")[1]
+                name = name.split("|")[0]
+            if name in names:
+                if adress != names[name][0]:
+                    client.send("[SERVER]: Your name is used by someone else choose different using /name NEW_NAME\n".encode("utf-8"))
+                    continue
+            else:
+                if adress in adresses:
+                    del names[adresses[adress]]
+                    del adresses[adress]
+                names[name]=[adress,client]
+                adresses[adress]= name
+            if "|" in text.split(" ")[0]:
+                message = (str(name) + " is whispering to you" + text[len(name) + len(whispering_to):]).encode("utf-8")
+                names[whispering_to][1].send(message)
+                if whispering_to == "[SERVER]":
+                    print(message.decode("utf-8"))
+            else:
                 # sending message to others
                 for k in clients:
-                    # Chceme poslat zprávu všem OSTATNÍM, ne sami sobě
                     if k != client:
                         try:
-                            # Posíláme originální zprávu (už je v bytech)
                             k.send(message)
                         except:
                             pass
         except:
-            # Pokud nastane jakákoliv chyba (klient spadne), přerušíme cyklus
+            del names[adresses[adress]]
+            del adresses[adress]
             break
             
-    # cleaning - Odsazeno MIMO cyklus while True!
     if client in clients:
         clients.remove(client)
-    client.close()  # Byla tu chyba "clients.close()"
+    client.close() 
     print("Lost connection with:" + str(adress))
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

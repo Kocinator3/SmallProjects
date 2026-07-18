@@ -22,8 +22,8 @@ SERVER_IP = input("Your Server IP Adress: ")
 PORT = input("Your Server Port: ")
 while not only_one:
     NAME = input("Your Name: ")
-    if " " in NAME:
-        print("\nYou cannot use spaces in your name, write it again.\n")
+    if " " in NAME or not NAME.isalnum():
+        print("\nYou cannot use spaces, write it again.\n")
     else:
         only_one = True
 
@@ -31,7 +31,7 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
     client.connect((SERVER_IP, int(PORT)))
-    print("Connection to server was succesful! (To cancel it write \"/quit\")")
+    print("\nConnection to server was succesful! for help write /help\n")
 except Exception as e:
     print(f"An error accured: {e}")
     sys.exit()
@@ -39,6 +39,8 @@ except Exception as e:
 receiving_thread = threading.Thread(target=message_receiving, args=(client,))
 receiving_thread.daemon = True
 receiving_thread.start()
+
+client.send((f"{NAME}|[SERVER]: testing name").encode("utf-8"))
 
 # main cycle
 while True:
@@ -52,17 +54,26 @@ while True:
         if text.lower() == "/quit":
             client.close()
             break
-        if text.lower() == "/help":
-            print("\nto quit write /quit\nto whisper someone write /whisper NAME MESSAGE\nto see this dialog write /help")
+        elif text.lower() == "/help":
+            print("\nto quit \t/quit\nto whisper something to someone \t/whisper NAME MESSAGE\nto see this dialog \t/help\nto set new name \t/name NEW_NAME\n")
             continue
-        if text.startswith("/whisper"):
+        elif text.startswith("/whisper"):
             if len(words) >= 3:
                 relNAME = str(NAME) + "|" + str(words[1])
                 first = len(words[0]) + len(words[1]) + 2
                 relText = 	text[first:]
             else:
-                print("incorrect formate. /whisper NAME MESSAGE")
+                print("[SERVER]: Incorrect formate. /whisper NAME MESSAGE")
                 continue
+        elif text.startswith("/name"):
+            if len(words) > 2:
+                print("[SERVER]: You cannot use spaces in your name")
+                continue
+            elif len(words) == 1:
+                print("[SERVER]: Incorrect formate. /name NEW_NAME")
+                continue
+            NAME = words[1]
+            client.send((f"{NAME}|[SERVER]: testing name").decode("utf-8"))
         else:
             relNAME = NAME
             relText = text
