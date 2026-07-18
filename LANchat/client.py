@@ -1,0 +1,74 @@
+import socket
+import threading
+import sys
+
+def message_receiving(sock):
+    while True:
+        try:
+            message = sock.recv(1024).decode("utf-8")
+            if not message:
+                break
+            # prints received message
+            print(f"\n{message}")
+        except:
+            print("\nConnection with server was lost.")
+            sock.close()
+            break
+        
+# Client settings
+only_one = False
+
+SERVER_IP = input("Your Server IP Adress: ")
+PORT = input("Your Server Port: ")
+while not only_one:
+    NAME = input("Your Name: ")
+    if " " in NAME:
+        print("\nYou cannot use spaces in your name, write it again.\n")
+    else:
+        only_one = True
+
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+try:
+    client.connect((SERVER_IP, int(PORT)))
+    print("Connection to server was succesful! (To cancel it write \"/quit\")")
+except Exception as e:
+    print(f"An error accured: {e}")
+    sys.exit()
+
+receiving_thread = threading.Thread(target=message_receiving, args=(client,))
+receiving_thread.daemon = True
+receiving_thread.start()
+
+# main cycle
+while True:
+    try:
+        text = input()
+        if not text.strip():
+            continue
+        
+        words = text.split(" ")
+        
+        if text.lower() == "/quit":
+            client.close()
+            break
+        if text.lower() == "/help":
+            print("\nto quit write /quit\nto whisper someone write /whisper NAME MESSAGE\nto see this dialog write /help")
+            continue
+        if text.startswith("/whisper"):
+            if len(words) >= 3:
+                relNAME = str(NAME) + "|" + str(words[1])
+                first = len(words[0]) + len(words[1]) + 2
+                relText = 	text[first:]
+            else:
+                print("incorrect formate. /whisper NAME MESSAGE")
+                continue
+        else:
+            relNAME = NAME
+            relText = text
+        
+        message = f"{relNAME}: {relText}"
+        client.send(message.encode("utf-8"))
+    except KeyboardInterrupt:
+        client.close()
+        break
