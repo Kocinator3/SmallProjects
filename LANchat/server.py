@@ -34,10 +34,10 @@ def client_service(client, adress):
                 names[name]=[adress,client]
                 adresses[adress]= name
             if "|" in text.split(" ")[0]:
-                message = (str(name) + " is whispering to you" + text[len(name) + len(whispering_to):]).encode("utf-8")
-                names[whispering_to][1].send(message)
-                if whispering_to == "[SERVER]":
-                    print(message.decode("utf-8"))
+                message = (str(name) + " is whispering to you" + text[len(name) + len(whispering_to) + 1:]).encode("utf-8")
+                if whispering_to != "[SERVER]":
+                    names[whispering_to][1].send(message)
+                else: print(message.decode("utf-8"))
             else:
                 # sending message to others
                 for k in clients:

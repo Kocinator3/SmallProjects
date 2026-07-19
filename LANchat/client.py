@@ -22,7 +22,7 @@ SERVER_IP = input("Your Server IP Adress: ")
 PORT = input("Your Server Port: ")
 while not only_one:
     NAME = input("Your Name: ")
-    if " " in NAME or not NAME.isalnum():
+    if " " in NAME:
         print("\nYou cannot use spaces, write it again.\n")
     else:
         only_one = True
@@ -72,8 +72,9 @@ while True:
             elif len(words) == 1:
                 print("[SERVER]: Incorrect formate. /name NEW_NAME")
                 continue
-            NAME = words[1]
-            client.send((f"{NAME}|[SERVER]: testing name").decode("utf-8"))
+            NAME = words[1].encode("utf-8").decode("unicode_escape")
+            client.send((f"{NAME}|[SERVER]: testing name").encode("utf-8"))
+            continue
         else:
             relNAME = NAME
             relText = text
