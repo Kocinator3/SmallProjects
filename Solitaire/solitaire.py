@@ -146,6 +146,14 @@ class Card:
             f"{highlight}│\033[0m{colors[self.color]}{pad}{numbers[number]}{highlight}│\033[0m",
             f"{highlight}└──────┘\033[0m"
         ]
+        self.secondary_highlighted_text = [
+            f"\x1b[35m┌──────┐\033[0m",
+            f"\x1b[35m│\033[0m{numbers[number]}{pad}{colors[self.color]}\x1b[35m│\033[0m",
+            f"\x1b[35m│      │\033[0m",
+            f"\x1b[35m│      │\033[0m",
+            f"\x1b[35m│\033[0m{colors[self.color]}{pad}{numbers[number]}\x1b[35m│\033[0m",
+            f"\x1b[35m└──────┘\033[0m"
+        ]
 
 class Column:
     columns = []
@@ -169,7 +177,11 @@ class Column:
                     if card == highlighted:
                         for text in card.highlighted_text:
                             rows_for_print[current_y] += (text)
-                            current_y += 1                        
+                            current_y += 1  
+                    elif card == move[0]:
+                        for text in card.secondary_highlighted_text:
+                            rows_for_print[current_y] += (text)
+                            current_y += 1                                               
                     else:
                         for text in card.text:
                             rows_for_print[current_y] += (text)
@@ -179,7 +191,11 @@ class Column:
                     if card == highlighted:
                         for i in range(2):
                             rows_for_print[current_y] += (card.highlighted_text[i])
-                            current_y += 1                        
+                            current_y += 1   
+                    elif card == move[0]:       
+                        for i in range(2):
+                            rows_for_print[current_y] += card.secondary_highlighted_text[i]    
+                            current_y += 1                                                
                     else:
                         for i in range(2):
                             rows_for_print[current_y] += (card.text[i])
@@ -191,9 +207,25 @@ class Column:
                 else:
                     rows_for_print[current_y] += "┌──────┐"
                 current_y += 1
+        if self.cards.__len__() == 0:
+            if highlighted == self:
+                color = grayed_highlight
+            else:
+                color = "\033[38;5;244m"
+            text = [
+                f"{color}┌──────┐\033[0m",
+                f"{color}│      │\033[0m",
+                f"{color}│      │\033[0m",
+                f"{color}│      │\033[0m",
+                f"{color}│      │\033[0m",
+                f"{color}└──────┘\033[0m"
+            ]
+            for i in text:
+                rows_for_print[current_y] += i
+                current_y += 1
         while current_y < len(rows_for_print):
             rows_for_print[current_y] += "        "
-            current_y += 1
+            current_y += 1                
     def update(self):
         if self.cards.__len__() > 0:
             if self.cards[-1].turned_over == False:
@@ -279,6 +311,9 @@ class Waste:
             if self.cards[-1] == highlighted:
                 for i, text in enumerate(self.cards[-1].highlighted_text):
                     rows_for_print[i] += text
+            elif self.cards[-1] == move[0]:
+                for i, text in enumerate(self.cards[-1].secondary_highlighted_text):
+                    rows_for_print[i] += text
             else:
                 for i, text in enumerate(self.cards[-1].text):
                     rows_for_print[i] += text
@@ -292,6 +327,9 @@ class Waste:
             if self.cards[-1] == highlighted:
                 for i, text in enumerate(self.cards[-1].highlighted_text):
                     rows_for_print[i] += text
+            elif self.cards[-1] == move[0]:
+                for i, text in enumerate(self.cards[-1].secondary_highlighted_text):
+                    rows_for_print[i] += text                    
             else:
                 for i, text in enumerate(self.cards[-1].text):
                     rows_for_print[i] += text
@@ -307,6 +345,9 @@ class Waste:
             if self.cards[-1] == highlighted:
                 for i, text in enumerate(self.cards[-1].highlighted_text):
                     rows_for_print[i] += text
+            elif self.cards[-1] == move[0]:
+                for i, text in enumerate(self.cards[-1].secondary_highlighted_text):
+                    rows_for_print[i] += text                
             else:
                 for i, text in enumerate(self.cards[-1].text):
                     rows_for_print[i] += text
@@ -356,13 +397,16 @@ def score(score:str="9999"):
     for i,text in enumerate(texts):
         rows_for_print[i+2] += f"\t{text}"
 def reset():
-    global highlighted, moving
+    global highlighted, moving, move, moving_from_waste
     Card.cards.clear()
     Column.columns.clear()
+    Foundation.foundations.clear()
     Stock.stock = None
+    move = (None, None, None)
     high_x, high_y = 0, 1
     cards = []
     moving = False
+    moving_from_waste = False
     for number in range(1,14):
         for color in ["heart", "club", "diamond", "spade"]:
             cards.append(Card(color, number, False, False))
@@ -402,10 +446,11 @@ def redraw():
         elif high_x >= 3:
             highlighted = high_x - 3
     elif Column.columns[high_x].cards.__len__() == 0:
-        high_y = 0
+        high_y = 1
+        highlighted = Column.columns[high_x]
     else:
         while True:
-            if Column.columns[high_x].cards[high_y-1].turned_over:
+            if Column.columns[high_x].cards[high_y-1].turned_over or highlighted == Column.columns[high_x]:
                 highlighted = Column.columns[high_x].cards[high_y-1]
                 break
             high_y += 1
@@ -470,11 +515,14 @@ try:
                 elif high_y == 1:
                     high_y = 0
             if key == "down" and high_y < Column.columns[high_x].cards.__len__():
-                high_y += 1
+                if high_y == 0:
+                    high_y = 1
+                elif high_y < Column.columns[high_x].cards.__len__():
+                    high_y += 1
             if key == "right" and high_x <= 5:
                 high_x += 1
                 if high_y > Column.columns[high_x].cards.__len__():
-                    high_y = Column.columns[high_x].cards.__len__()
+                    high_y = max(1,Column.columns[high_x].cards.__len__())
 
                 if high_y == 0:
                     if Waste.waste.cards.__len__() == 0 and high_x == 0:
@@ -483,8 +531,11 @@ try:
                         high_x = 3
             if key == "left" and high_x >= 1:
                 high_x -= 1
-                if high_y > Column.columns[high_x].cards.__len__():
-                    high_y = Column.columns[high_x].cards.__len__()
+                if high_y > Column.columns[high_x].cards.__len__() and Column.columns[high_x].cards.__len__() != 0:
+                    high_y = max(1,Column.columns[high_x].cards.__len__())
+                elif Column.columns[high_x].cards.__len__() == 0:
+                    high_y = 1
+                    highlighted = Column.columns[high_x]
                 
                 if high_y == 0:
                     if high_x == 2:
@@ -495,9 +546,9 @@ try:
                 if highlighted == "stock":
                     draw_card()
                 if high_y > 0:
-                    if moving == False:
+                    if moving == False and moving_from_waste == False and type(highlighted) != Column:
                         if high_y > 1:
-                            Column.columns[high_x].cards.insert(high_y - 1, Card("heart", 1, Column.columns[high_x].cards[high_y - 1].turned_over, ghost=True))
+                            Column.columns[high_x].cards.insert(high_y - 1, Card("heart", 1, Column.columns[high_x].cards[high_y - 2].turned_over, ghost=True))
                             high_y += 1
                             move = (Column.columns[high_x].cards[high_y-1], high_x, high_y)
                             moving = True
@@ -506,22 +557,47 @@ try:
                             high_y += 1
                             move = (Column.columns[high_x].cards[high_y-1], high_x, high_y)
                             moving = True
-                    else:
-                        choosed = Column.columns[high_x].cards[high_y-1]
-                        if (choosed.color == "club" or choosed.color == "spade") and (move[0].color == "diamond" or move[0].color == "heart") and (choosed.number == move[0].number + 1):
-                            for i in Column.columns[move[1]].cards[move[2]-1:]:
-                                Column.columns[high_x].cards.append(i)
-                                Column.columns[move[1]].cards.remove(i)
-                        if (move[0].color == "club" or move[0].color == "spade") and (choosed.color == "diamond" or choosed.color == "heart") and (choosed.number == move[0].number + 1):
-                            for i in Column.columns[move[1]].cards[move[2]-1:]:
-                                Column.columns[high_x].cards.append(i)
-                                Column.columns[move[1]].cards.remove(i)
+                    elif moving == True:
+                        if highlighted == move[0]:
+                            high_y -= 1
+                            Column.kill_dummies()
+                            moving = False  
+                            move = (None, None, None)
+                        else:
+                            if type(highlighted) == Column:
+                                if move[0].number == 13 and Column.columns[high_x].cards.__len__() == 0:
+                                    for i in Column.columns[move[1]].cards[move[2]-1:]:
+                                        Column.columns[high_x].cards.append(i)
+                                        Column.columns[move[1]].cards.remove(i)
+                            else:
+                                choosed = Column.columns[high_x].cards[high_y-1]
+                                if (choosed.color == "club" or choosed.color == "spade") and (move[0].color == "diamond" or move[0].color == "heart") and (choosed.number == move[0].number + 1):
+                                    for i in Column.columns[move[1]].cards[move[2]-1:]:
+                                        Column.columns[high_x].cards.append(i)
+                                        Column.columns[move[1]].cards.remove(i)
+                                elif (move[0].color == "club" or move[0].color == "spade") and (choosed.color == "diamond" or choosed.color == "heart") and (choosed.number == move[0].number + 1):
+                                    for i in Column.columns[move[1]].cards[move[2]-1:]:
+                                        Column.columns[high_x].cards.append(i)
+                                        Column.columns[move[1]].cards.remove(i)
+                            Column.kill_dummies()
+                            moving = False    
+                            move = (None, None, None)
+                else:
+                    if highlighted == Waste.waste.cards[-1]:
                         Column.kill_dummies()
-                        moving = False            
+                        move = (None, None, None)
+                        moving = False  
+                        move = (Waste.waste.cards[-1], high_x, high_y)
+                        moving_from_waste = True                           
             if key == "backspace":
+                if highlighted == move[0]:
+                    high_y -= 1
                 Column.kill_dummies()
-                moving = False                     
-
+                move = (None, None, None)
+                moving = False           
+                moving_from_waste = False                                 
+            if key == "\\":
+                reset()
             redraw()
 finally:
     print('\033[?25h', end="")
