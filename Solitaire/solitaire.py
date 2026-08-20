@@ -1,11 +1,10 @@
 import pyfiglet
-import math
 import random
 import os
 import sys
 import colorama
 import platform
-
+import time
 if os.name == "nt" and int(platform.release()) < 10:
     highlight = "\033[33m"  
     grayed_highlight = "\033[33m"
@@ -13,7 +12,48 @@ else:
     highlight = "\033[38;5;208m"  
     grayed_highlight = "\033[38;5;137m"
 
+if os.name == "nt":
+    os.system('mode con: cols=120 lines=50')
+else:
+    sys.stdout.write("\x1b[8;50;120t")
+    sys.stdout.flush()
 
+#┌┐ └┘─│
+min_width = 120
+min_height = 50
+
+def check_size():
+    size = os.get_terminal_size()
+    while size.lines < min_height or size.columns < min_width:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        text = ["", " ┌", " │", " └"]
+        for i in range(size.columns):
+            text[0] += " "
+        for i in range(size.columns - 4):
+            text[1] += "─"
+            text[2] += " "
+            text[3] += "─"
+        text[1] += "┐"
+        text[2] += "│"
+        text[3] += "┘"
+        print(text[0])
+        print(text[1])
+        for i in range(size.lines - ((size.lines // 2) - 2)):
+            print(text[2])
+        print(" │" + f"Terminal size too small:".center(size.columns) + "│")
+        print(" │" + f"Width = {str("\033[31m") if size.columns < min_width else str("\033[32m")}{size.columns}\033[0m Height = {str("\033[31m") if size.lines < min_height else str("\033[32m")}{size.lines}\033[0m".center(size.columns) + "│")
+        print(text[2])
+        print(" │" + f"Needed size:".center(size.columns) + "│")
+        print(" │" + f"Width = {min_width} Height = {min_height}".center(size.columns) + "│")
+        for i in range(size.lines - ((size.lines // 2) - 7)):
+            print(text[2])
+        print(text[3])
+        print(text[0])
+        new_size = size
+        while size == new_size:
+            new_size = os.get_terminal_size()
+            time.sleep(0.1)
+        size = new_size
 
 colorama.init()
 font = "delta_corps_priest_1"
@@ -86,11 +126,11 @@ def get_key():
         return keys_linux.get(ch, ch.lower())
 
 rows_for_print = []
-for i in range(37):
+for i in range(44):
     rows_for_print.append("")
     
 
-#┌┐ └┘-│
+#┌┐ └┘─│
 
 colors = {
     "heart" : "\033[31m♥\033[0m",
@@ -122,7 +162,8 @@ class Card:
         self.turned_over = turned_over
         self.ghost = ghost
         self.dummy = dummy
-        Card.cards.append(self)
+        if not self.ghost and not self.dummy:
+            Card.cards.append(self)
         self.text = []
         pad = "   " if len(numbers[number]) == 2 else "    "
         self.text.append("┌──────┐")
@@ -174,28 +215,28 @@ class Column:
                     current_y += 1
                 #if card is turned over and the last one
                 elif i == len(self.cards) - 1:
-                    if card == highlighted:
-                        for text in card.highlighted_text:
-                            rows_for_print[current_y] += (text)
-                            current_y += 1  
-                    elif card == move[0]:
+                    if card == move[0]:
                         for text in card.secondary_highlighted_text:
                             rows_for_print[current_y] += (text)
-                            current_y += 1                                               
+                            current_y += 1                                    
+                    elif card == highlighted:
+                        for text in card.highlighted_text:
+                            rows_for_print[current_y] += (text)
+                            current_y += 1                                 
                     else:
                         for text in card.text:
                             rows_for_print[current_y] += (text)
                             current_y += 1
                 #if card is turned over and isn't the last one
                 else:
-                    if card == highlighted:
-                        for i in range(2):
-                            rows_for_print[current_y] += (card.highlighted_text[i])
-                            current_y += 1   
-                    elif card == move[0]:       
+                    if card == move[0]:       
                         for i in range(2):
                             rows_for_print[current_y] += card.secondary_highlighted_text[i]    
-                            current_y += 1                                                
+                            current_y += 1     
+                    elif card == highlighted:
+                        for i in range(2):
+                            rows_for_print[current_y] += (card.highlighted_text[i])
+                            current_y += 1                                                                          
                     else:
                         for i in range(2):
                             rows_for_print[current_y] += (card.text[i])
@@ -203,7 +244,7 @@ class Column:
             else:
                 #if card isn't turned over:
                 if card.ghost:
-                    rows_for_print[current_y] += "│xxxxxx│"
+                    rows_for_print[current_y] += "│\033[38;5;244mxxxxxx\033[0m│"
                 else:
                     rows_for_print[current_y] += "┌──────┐"
                 current_y += 1
@@ -250,7 +291,7 @@ class Stock:
         self.text = []
         self.text.append("┌──────┐")
         for i in range(4):
-            self.text.append("│xxxxxx│")
+            self.text.append("│\033[38;5;244mxxxxxx\033[0m│")
         self.text.append("└──────┘")
         Stock.stock = self
         self.refills = 3
@@ -258,10 +299,10 @@ class Stock:
         if len(self.cards) > 0:
             if highlighted == "stock":
                 rows_for_print[0] += f"{highlight}┌──────┐\033[0m"
-                rows_for_print[1] += f"{highlight}│xxxxxx│\033[0m"
-                rows_for_print[2] += f"{highlight}│xxxxxx│\033[0m"
-                rows_for_print[3] += f"{highlight}│xxxxxx│\033[0m"
-                rows_for_print[4] += f"{highlight}│xxxxxx│\033[0m"
+                rows_for_print[1] += f"{highlight}│{grayed_highlight}xxxxxx{highlight}│\033[0m"
+                rows_for_print[2] += f"{highlight}│{grayed_highlight}xxxxxx{highlight}│\033[0m"
+                rows_for_print[3] += f"{highlight}│{grayed_highlight}xxxxxx{highlight}│\033[0m"
+                rows_for_print[4] += f"{highlight}│{grayed_highlight}xxxxxx{highlight}│\033[0m"
                 rows_for_print[5] += f"{highlight}└──────┘\033[0m"
             else:
                 for i, text in enumerate(self.text):
@@ -269,12 +310,12 @@ class Stock:
         else:
             if highlighted == "stock":
                 if self.refills > 0:
-                    rows_for_print[0] += f"{highlight}┌──────┐\033[0m"
-                    rows_for_print[1] += f"{highlight}│\033[0mREFILL{highlight}│\033[0m"
-                    rows_for_print[2] += f"{highlight}│\033[0m [R]  {highlight}│\033[0m"
-                    rows_for_print[3] += f"{highlight}│\033[0m LEFT:{highlight}│\033[0m"
-                    rows_for_print[4] += f"{highlight}│\033[0m  {self.refills}   {highlight}│\033[0m"
-                    rows_for_print[5] += f"{highlight}└──────┘"           
+                    rows_for_print[0] += f"{grayed_highlight}┌──────┐\033[0m"
+                    rows_for_print[1] += f"{grayed_highlight}│\033[38;5;244mREFILL{grayed_highlight}│\033[0m"
+                    rows_for_print[2] += f"{grayed_highlight}│\033[38;5;244m [R]  {grayed_highlight}│\033[0m"
+                    rows_for_print[3] += f"{grayed_highlight}│\033[38;5;244m LEFT:{grayed_highlight}│\033[0m"
+                    rows_for_print[4] += f"{grayed_highlight}│\033[38;5;244m  {self.refills}   {grayed_highlight}│\033[0m"
+                    rows_for_print[5] += f"{grayed_highlight}└──────┘\033[0m"           
                 else:
                     rows_for_print[0] += "\033[31m┌──────┐\033[0m"
                     rows_for_print[1] += "\033[31m│REFILL│\033[0m"
@@ -283,23 +324,25 @@ class Stock:
                     rows_for_print[4] += "\033[31m│  0   │\033[0m"
                     rows_for_print[5] += "\033[31m└──────┘\033[0m"
             else:
-                rows_for_print[0] += "┌──────┐"
-                rows_for_print[1] += "│REFILL│"
-                rows_for_print[2] += "│ [R]  │"
-                rows_for_print[3] += "│ LEFT:│"
-                rows_for_print[4] += f"│  {self.refills}   │"
-                rows_for_print[5] += "└──────┘"
+                rows_for_print[0] += "\033[38;5;244m┌──────┐\033[0m"
+                rows_for_print[1] += "\033[38;5;244m│REFILL│\033[0m"
+                rows_for_print[2] += "\033[38;5;244m│ [R]  │\033[0m"
+                rows_for_print[3] += "\033[38;5;244m│ LEFT:│\033[0m"
+                rows_for_print[4] += f"\033[38;5;244m│  {self.refills}   │\033[0m"
+                rows_for_print[5] += "\033[38;5;244m└──────┘\033[0m"
     def refill(self):
         if self.refills > 0 and self.cards.__len__() <= 0:
             self.cards = Waste.waste.cards[::-1]
             Waste.waste.cards.clear()
-            self.refills -= 1
-            
+            self.refills -= 1            
 
 class Waste:
     waste = None
-    def __init__(self, cards:list = list()):
-        self.cards = cards
+    def __init__(self, cards:list = None):
+        if cards == None:
+            self.cards = []
+        else:
+            self.cards = cards
         Waste.waste = self
     def draw(self):
         if self.cards.__len__() == 0:
@@ -307,13 +350,13 @@ class Waste:
                 rows_for_print[i] += "                "
         elif self.cards.__len__() == 1:
             for i in range(6):
-                rows_for_print[i] += "       "
-            if self.cards[-1] == highlighted:
-                for i, text in enumerate(self.cards[-1].highlighted_text):
-                    rows_for_print[i] += text
-            elif self.cards[-1] == move[0]:
+                rows_for_print[i] += "       "            
+            if self.cards[-1] == move[0]:
                 for i, text in enumerate(self.cards[-1].secondary_highlighted_text):
-                    rows_for_print[i] += text
+                    rows_for_print[i] += text                    
+            elif self.cards[-1] == highlighted:
+                for i, text in enumerate(self.cards[-1].highlighted_text):
+                    rows_for_print[i] += text                    
             else:
                 for i, text in enumerate(self.cards[-1].text):
                     rows_for_print[i] += text
@@ -323,12 +366,12 @@ class Waste:
             for i in range(6):
                 rows_for_print[i] += "    "
             for i, text in enumerate(self.cards[-2].half_text):
-                rows_for_print[i] += text
-            if self.cards[-1] == highlighted:
-                for i, text in enumerate(self.cards[-1].highlighted_text):
-                    rows_for_print[i] += text
-            elif self.cards[-1] == move[0]:
+                rows_for_print[i] += text            
+            if self.cards[-1] == move[0]:
                 for i, text in enumerate(self.cards[-1].secondary_highlighted_text):
+                    rows_for_print[i] += text                    
+            elif self.cards[-1] == highlighted:
+                for i, text in enumerate(self.cards[-1].highlighted_text):
                     rows_for_print[i] += text                    
             else:
                 for i, text in enumerate(self.cards[-1].text):
@@ -341,13 +384,13 @@ class Waste:
             for i, text in enumerate(self.cards[-3].half_text):
                 rows_for_print[i] += text
             for i, text in enumerate(self.cards[-2].half_text):
-                rows_for_print[i] += text
-            if self.cards[-1] == highlighted:
-                for i, text in enumerate(self.cards[-1].highlighted_text):
-                    rows_for_print[i] += text
-            elif self.cards[-1] == move[0]:
+                rows_for_print[i] += text            
+            if self.cards[-1] == move[0]:
                 for i, text in enumerate(self.cards[-1].secondary_highlighted_text):
                     rows_for_print[i] += text                
+            elif self.cards[-1] == highlighted:
+                for i, text in enumerate(self.cards[-1].highlighted_text):
+                    rows_for_print[i] += text                    
             else:
                 for i, text in enumerate(self.cards[-1].text):
                     rows_for_print[i] += text
@@ -357,8 +400,11 @@ class Waste:
 
 class Foundation:
     foundations = []
-    def __init__(self, cards:list = list()):
-        self.cards = cards
+    def __init__(self, cards:list = None):
+        if cards == None:
+            self.cards = []
+        else:
+            self.cards = cards
         Foundation.foundations.append(self)
     def draw(self):
         if self.cards.__len__() < 1:
@@ -388,8 +434,8 @@ class Foundation:
         for i in cls.foundations:
             i.draw()
 
-def time(play_time:str="0:0"):
-    texts = pyfiglet.figlet_format(play_time, font="double_blocky", width=200).splitlines()
+def play_time(play_play_time:str="0:0"):
+    texts = pyfiglet.figlet_format(play_play_time, font="double_blocky", width=200).splitlines()
     for i,text in enumerate(texts):
         rows_for_print[i+2] += f"\t{text}"
 def score(score:str="9999"):
@@ -397,7 +443,7 @@ def score(score:str="9999"):
     for i,text in enumerate(texts):
         rows_for_print[i+2] += f"\t{text}"
 def reset():
-    global highlighted, moving, move, moving_from_waste
+    global highlighted, moving, move, moving_from_waste, moving_from_foundation
     Card.cards.clear()
     Column.columns.clear()
     Foundation.foundations.clear()
@@ -407,6 +453,7 @@ def reset():
     cards = []
     moving = False
     moving_from_waste = False
+    moving_from_foundation = False
     for number in range(1,14):
         for color in ["heart", "club", "diamond", "spade"]:
             cards.append(Card(color, number, False, False))
@@ -424,8 +471,8 @@ def reset():
     print("\n")
     print(pyfiglet.figlet_format("SOLITAIRE", font=font, width=200))
     Stock(Card.cards)
-    cards.clear
-    Waste()
+    cards.clear()
+    Waste([])
     
     highlighted = Column.columns[0].cards[0]
 
@@ -462,7 +509,7 @@ def redraw():
     Column.draw_all()
     Foundation.draw_all()
     score()
-    time()
+    play_time()
     os.system('cls' if os.name == 'nt' else 'clear')
     print("\n")
     print(pyfiglet.figlet_format("SOLITAIRE", font=font, width=200))
@@ -470,7 +517,12 @@ def redraw():
         print(row)
 
 def draw_card():
+    global move, moving, moving_from_waste
     if Stock.stock.cards.__len__() > 0:
+        if move[0] == Waste.waste.cards[-1] if Waste.waste.cards.__len__() > 0 else None:
+            move = (None, None, None)
+            moving_from_waste = False
+            moving = False
         Waste.waste.cards.append(Stock.stock.cards[-1])
         Stock.stock.cards.remove(Stock.stock.cards[-1])
 
@@ -484,6 +536,7 @@ try:
     high_x, high_y = 0, 1
 
     while run:
+        check_size()
         os.system('cls' if os.name == 'nt' else 'clear')
         print("\n")
         print(pyfiglet.figlet_format("SOLITAIRE", font=font , width=200))
@@ -495,7 +548,6 @@ try:
         game = True
         while game:
             key = get_key()
-
             if key in ['q', 'esc', 'ctrl-c']:
                 os.system('cls' if os.name == 'nt' else 'clear')
                 print("Hra ukončena.")
@@ -519,7 +571,7 @@ try:
                     high_y = 1
                 elif high_y < Column.columns[high_x].cards.__len__():
                     high_y += 1
-            if key == "right" and high_x <= 5:
+            if key == "right" and high_x <= 5:                
                 high_x += 1
                 if high_y > Column.columns[high_x].cards.__len__():
                     high_y = max(1,Column.columns[high_x].cards.__len__())
@@ -544,51 +596,101 @@ try:
                         high_x = 0
             if key == "space" or key == "enter":
                 if highlighted == "stock":
-                    draw_card()
-                if high_y > 0:
+                    if Stock.stock.cards.__len__() == 0:
+                        Stock.stock.refill()
+                    else:
+                        draw_card()             
+                else:
                     if moving == False and moving_from_waste == False and type(highlighted) != Column:
+                        move = (None, None, None)
                         if high_y > 1:
                             Column.columns[high_x].cards.insert(high_y - 1, Card("heart", 1, Column.columns[high_x].cards[high_y - 2].turned_over, ghost=True))
                             high_y += 1
                             move = (Column.columns[high_x].cards[high_y-1], high_x, high_y)
                             moving = True
-                        else:
+                        elif high_y == 1:
                             Column.columns[high_x].cards.insert(high_y - 1, Card("heart", 1, False, False, True))
                             high_y += 1
                             move = (Column.columns[high_x].cards[high_y-1], high_x, high_y)
                             moving = True
-                    elif moving == True:
-                        if highlighted == move[0]:
-                            high_y -= 1
-                            Column.kill_dummies()
-                            moving = False  
-                            move = (None, None, None)
                         else:
-                            if type(highlighted) == Column:
-                                if move[0].number == 13 and Column.columns[high_x].cards.__len__() == 0:
-                                    for i in Column.columns[move[1]].cards[move[2]-1:]:
-                                        Column.columns[high_x].cards.append(i)
-                                        Column.columns[move[1]].cards.remove(i)
+                            if highlighted == Waste.waste.cards[-1] if Waste.waste.cards.__len__() != 0 else False:
+                                move = (Waste.waste.cards[-1], high_x, high_y)
+                                moving_from_waste = True                  
+                            if Foundation.foundations[highlighted].cards.__len__() != 0 if highlighted in (0, 1, 2, 3) else False:         
+                                move = (Foundation.foundations[highlighted].cards[-1], high_x, high_y)      
+                                moving_from_foundation = True  
+                    else:
+                        if moving_from_foundation:
+                            if not ((highlighted == high_x - 3) and (high_y == 0)):
+                                #Fondation to cleared Column
+                                if type(highlighted) == Column:
+                                    if move[0].number == 13 and Column.columns[high_x].cards.__len__() == 0:
+                                        Column.columns[high_x].cards.append(move[0])
+                                        Foundation.foundations[move[1] - 3].cards.remove(move[0])
+                                #Fondation to Column
+                                else:
+                                    choosed = Column.columns[high_x].cards[high_y-1]
+                                    if (choosed.color == "club" or choosed.color == "spade") and (move[0].color == "diamond" or move[0].color == "heart") and (choosed.number == move[0].number + 1):                         
+                                        Column.columns[high_x].cards.append(move[0])
+                                        Foundation.foundations[move[1] - 3].cards.remove(move[0])
+                                    elif (move[0].color == "club" or move[0].color == "spade") and (choosed.color == "diamond" or choosed.color == "heart") and (choosed.number == move[0].number + 1):                         
+                                        Column.columns[high_x].cards.append(move[0])
+                                        Foundation.foundations[move[1] - 3].cards.remove(move[0])
+                        elif moving_from_waste:
+                            if highlighted != move[0]:   
+                                #Waste to Foundation                    
+                                if highlighted in (0, 1, 2, 3):                                
+                                    choosed = Foundation.foundations[highlighted].cards[-1] if Foundation.foundations[highlighted].cards.__len__() != 0 else None
+                                    if (((choosed.color == move[0].color) and (choosed.number == move[0].number - 1)) if move[0].number != 1 else (Foundation.foundations[highlighted].cards.__len__() == 0)):
+                                        Foundation.foundations[highlighted].cards.append(move[0])
+                                        Waste.waste.cards.remove(move[0])                                        
+                                #Waste to cleared Column
+                                elif type(highlighted) == Column:
+                                    if move[0].number == 13 and Column.columns[high_x].cards.__len__() == 0:
+                                        Column.columns[high_x].cards.append(move[0])
+                                        Waste.waste.cards.remove(move[0])
+                                #Waste to Column
+                                else:
+                                    choosed = Column.columns[high_x].cards[high_y-1]
+                                    if (choosed.color == "club" or choosed.color == "spade") and (move[0].color == "diamond" or move[0].color == "heart") and (choosed.number == move[0].number + 1):                         
+                                        Column.columns[high_x].cards.append(move[0])
+                                        Waste.waste.cards.remove(move[0])
+                                    elif (move[0].color == "club" or move[0].color == "spade") and (choosed.color == "diamond" or choosed.color == "heart") and (choosed.number == move[0].number + 1):                         
+                                        Column.columns[high_x].cards.append(move[0])
+                                        Waste.waste.cards.remove(move[0])                                        
+                        elif moving:
+                            if highlighted == move[0] or high_x == move[1]:
+                                high_y -= 1
                             else:
-                                choosed = Column.columns[high_x].cards[high_y-1]
-                                if (choosed.color == "club" or choosed.color == "spade") and (move[0].color == "diamond" or move[0].color == "heart") and (choosed.number == move[0].number + 1):
-                                    for i in Column.columns[move[1]].cards[move[2]-1:]:
-                                        Column.columns[high_x].cards.append(i)
-                                        Column.columns[move[1]].cards.remove(i)
-                                elif (move[0].color == "club" or move[0].color == "spade") and (choosed.color == "diamond" or choosed.color == "heart") and (choosed.number == move[0].number + 1):
-                                    for i in Column.columns[move[1]].cards[move[2]-1:]:
-                                        Column.columns[high_x].cards.append(i)
-                                        Column.columns[move[1]].cards.remove(i)
-                            Column.kill_dummies()
-                            moving = False    
-                            move = (None, None, None)
-                else:
-                    if highlighted == Waste.waste.cards[-1]:
+                                #Column to Foundation
+                                if highlighted in (0, 1, 2, 3):
+                                    choosed = Foundation.foundations[highlighted].cards[-1] if Foundation.foundations[highlighted].cards.__len__() != 0 else None
+                                    if (((choosed.color == move[0].color) and (choosed.number == move[0].number - 1)) if move[0].number != 1 else (Foundation.foundations[highlighted].cards.__len__() == 0)) and (move[0] == Column.columns[move[1]].cards[-1]):
+                                        Foundation.foundations[highlighted].cards.append(move[0])
+                                        Column.columns[move[1]].cards.remove(move[0])
+                                #Column to cleared Column
+                                elif type(highlighted) == Column:
+                                    if move[0].number == 13 and Column.columns[high_x].cards.__len__() == 0:                         
+                                        for i in Column.columns[move[1]].cards[move[2]-1:]:
+                                            Column.columns[high_x].cards.append(i)
+                                            Column.columns[move[1]].cards.remove(i)
+                                #Column to Column
+                                else:
+                                    choosed = Column.columns[high_x].cards[high_y-1]
+                                    if (choosed.color == "club" or choosed.color == "spade") and (move[0].color == "diamond" or move[0].color == "heart") and (choosed.number == move[0].number + 1):                         
+                                        for i in Column.columns[move[1]].cards[move[2]-1:]:
+                                            Column.columns[high_x].cards.append(i)
+                                            Column.columns[move[1]].cards.remove(i)
+                                    elif (move[0].color == "club" or move[0].color == "spade") and (choosed.color == "diamond" or choosed.color == "heart") and (choosed.number == move[0].number + 1):                         
+                                        for i in Column.columns[move[1]].cards[move[2]-1:]:
+                                            Column.columns[high_x].cards.append(i)
+                                            Column.columns[move[1]].cards.remove(i)
                         Column.kill_dummies()
+                        moving = False
+                        moving_from_waste = False
+                        moving_from_foundation = False
                         move = (None, None, None)
-                        moving = False  
-                        move = (Waste.waste.cards[-1], high_x, high_y)
-                        moving_from_waste = True                           
             if key == "backspace":
                 if highlighted == move[0]:
                     high_y -= 1
@@ -599,5 +701,6 @@ try:
             if key == "\\":
                 reset()
             redraw()
+            check_size()
 finally:
     print('\033[?25h', end="")
