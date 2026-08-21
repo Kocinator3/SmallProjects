@@ -22,39 +22,6 @@ else:
 min_width = 120
 min_height = 50
 
-def check_size():
-    size = os.get_terminal_size()
-    while size.lines < min_height or size.columns < min_width:
-        os.system('cls' if os.name == 'nt' else 'clear')
-        text = ["", " ┌", " │", " └"]
-        for i in range(size.columns):
-            text[0] += " "
-        for i in range(size.columns - 4):
-            text[1] += "─"
-            text[2] += " "
-            text[3] += "─"
-        text[1] += "┐"
-        text[2] += "│"
-        text[3] += "┘"
-        print(text[0])
-        print(text[1])
-        for i in range(size.lines - ((size.lines // 2) - 2)):
-            print(text[2])
-        print(" │" + f"Terminal size too small:".center(size.columns) + "│")
-        print(" │" + f"Width = {str("\033[31m") if size.columns < min_width else str("\033[32m")}{size.columns}\033[0m Height = {str("\033[31m") if size.lines < min_height else str("\033[32m")}{size.lines}\033[0m".center(size.columns) + "│")
-        print(text[2])
-        print(" │" + f"Needed size:".center(size.columns) + "│")
-        print(" │" + f"Width = {min_width} Height = {min_height}".center(size.columns) + "│")
-        for i in range(size.lines - ((size.lines // 2) - 7)):
-            print(text[2])
-        print(text[3])
-        print(text[0])
-        new_size = size
-        while size == new_size:
-            new_size = os.get_terminal_size()
-            time.sleep(0.1)
-        size = new_size
-
 colorama.init()
 font = "delta_corps_priest_1"
 
@@ -536,7 +503,6 @@ try:
     high_x, high_y = 0, 1
 
     while run:
-        check_size()
         os.system('cls' if os.name == 'nt' else 'clear')
         print("\n")
         print(pyfiglet.figlet_format("SOLITAIRE", font=font , width=200))
@@ -701,6 +667,5 @@ try:
             if key == "\\":
                 reset()
             redraw()
-            check_size()
 finally:
     print('\033[?25h', end="")
